@@ -57,7 +57,7 @@
     .nav-btn.active{color:var(--accent)}
 
     /* ── PAGES ── */
-    .page{display:none;flex-direction:column;height:calc(100vh - var(--nav-h));overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:20px}
+    .page{display:none;flex-direction:column;height:calc(100vh - var(--nav-h));overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:20px}
     .page.active{display:flex}
 
     /* ── PAGE HEADER ── */
@@ -91,10 +91,10 @@
     .filter-chip.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
 
     /* Charts */
-    .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px 16px}
-    .chart-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+    .charts-row{display:flex;flex-direction:column;gap:12px;padding:0 16px 16px}
+    .chart-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:14px;width:100%;min-width:0}
     .chart-card h3{font-size:.7rem;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
-    .chart-wrap{position:relative;height:130px}
+    .chart-wrap{position:relative;height:180px;width:100%}
 
     /* Rekening breakdown */
     .rek-list{padding:0 16px 16px}
@@ -790,18 +790,18 @@ window.deleteRekening=async()=>{
 };
 
 // ── NAVIGATION ─────────────────────────────────────────────────────────
+const PAGE_NAV={'dashboard':'nav-dash','uitgaves':'nav-uit','instellingen':'nav-set'};
 window.goPage=function(p){
   activePage=p;
   ['dashboard','uitgaves','instellingen'].forEach(n=>{
     document.getElementById('pg-'+n).classList.toggle('active',n===p);
-    document.getElementById('nav-'+n.slice(0,3)).classList.toggle('active',n===p);
+    document.getElementById(PAGE_NAV[n]).classList.toggle('active',n===p);
   });
-  // Show FAB only on uitgaves page
   document.getElementById('fab').style.display=(p==='uitgaves')?'flex':'none';
   if(p==='dashboard') renderDashboard();
+  if(p==='uitgaves') renderUitgaves();
+  if(p==='instellingen') renderInstellingen();
 };
-// Fix nav IDs
-document.getElementById('nav-das') && (document.getElementById('nav-das').id='nav-das');
 
 window.setMode=function(m){
   mode=m;
