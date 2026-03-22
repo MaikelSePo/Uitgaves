@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0d0d0d" />
+  <title>Uitgaves</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --surface: #181818;
+      --surface2: #222;
+      --border: #2a2a2a;
+      --accent: #f97316;
+      --accent-dim: rgba(249,115,22,0.15);
+      --green: #4ade80;
+      --green-dim: rgba(74,222,128,0.12);
+      --red: #f87171;
+      --red-dim: rgba(248,113,113,0.12);
+      --text: #f0f0f0;
+      --muted: #666;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+
+    /* ── AUTH SCREEN ── */
+    #auth-screen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100vh; padding: 32px;
+    }
+    #auth-screen h1 { font-family: 'Syne', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
+    #auth-screen p { color: var(--muted); font-size: 0.9rem; margin-bottom: 40px; }
+    .auth-form { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+    .auth-form input {
+      width: 100%; padding: 16px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text); font-size: 1rem; font-family: 'DM Sans', sans-serif;
+      outline: none;
+    }
+    .auth-form input:focus { border-color: var(--accent); }
+    .btn-primary {
+      width: 100%; padding: 16px; background: var(--accent); color: #000; border: none;
+      border-radius: var(--radius); font-size: 1rem; font-weight: 700; font-family: 'Syne', sans-serif;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn-primary:active { opacity: 0.8; }
+    .auth-error { color: var(--red); font-size: 0.85rem; text-align: center; min-height: 20px; }
+
+    /* ── APP SHELL ── */
+    #app { display: none; flex-direction: column; height: 100vh; }
+
+    /* ── HEADER ── */
+    .app-header {
+      padding: 16px 20px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .header-top { display: flex; align-items: center; justify-content: space-between; }
+    .header-top h1 { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--accent); }
+    .header-right { display: flex; gap: 10px; align-items: center; }
+    .mode-toggle {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+      padding: 4px; display: flex; gap: 2px;
+    }
+    .mode-btn {
+      padding: 5px 12px; border-radius: 16px; border: none; background: transparent;
+      color: var(--muted); font-size: 0.75rem; font-family: 'DM Sans', sans-serif; cursor: pointer;
+      transition: all .15s;
+    }
+    .mode-btn.active { background: var(--accent); color: #000; font-weight: 600; }
+    .logout-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 8px; padding: 6px 10px; font-size: 0.75rem; cursor: pointer;
+    }
+
+    /* ── BALANCE STRIP ── */
+    .balance-strip {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px;
+      background: var(--border); border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .balance-cell { background: var(--surface); padding: 12px 16px; }
+    .balance-cell .label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .balance-cell .amount { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; margin-top: 2px; }
+    .amount.green { color: var(--green); }
+    .amount.orange { color: var(--accent); }
+    .amount.red { color: var(--red); }
+
+    /* ── SCROLLABLE CONTENT ── */
+    #content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 0 100px; }
+
+    /* ── SECTION HEADERS ── */
+    .section-header {
+      padding: 16px 20px 8px;
+      font-family: 'Syne', sans-serif; font-size: 0.7rem; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    /* ── EXPENSE ROWS ── */
+    .expense-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+    .expense-row:active { background: var(--surface); }
+    .expense-row.paid { opacity: 0.45; }
+    .check-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border);
+      background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all .15s; font-size: 1rem;
+    }
+    .check-btn.paid { background: var(--green-dim); border-color: var(--green); }
+    .expense-info { flex: 1; min-width: 0; }
+    .expense-naam { font-size: 0.95rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .expense-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .expense-bedrag { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; flex-shrink: 0; }
+
+    /* ── POTJES ── */
+    .potjes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0 20px 12px; }
+    .pot-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    .pot-name { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+    .pot-amount { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; color: var(--green); }
+    .pot-pct { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── LOON CARD ── */
+    .loon-card {
+      margin: 0 20px 16px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;
+    }
+    .loon-card label { font-size: 0.75rem; color: var(--muted); display: block; margin-bottom: 8px; }
+    .loon-row { display: flex; gap: 8px; }
+    .loon-input {
+      flex: 1; padding: 12px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 1rem; font-family: 'Syne', sans-serif;
+      font-weight: 700; outline: none;
+    }
+    .loon-input:focus { border-color: var(--accent); }
+    .loon-save { padding: 12px 20px; background: var(--accent); border: none; border-radius: 10px; color: #000; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+    /* ── ADD EXPENSE ── */
+    .add-btn-fab {
+      position: fixed; bottom: 24px; right: 20px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--accent); border: none; color: #000; font-size: 1.6rem;
+      cursor: pointer; box-shadow: 0 4px 20px rgba(249,115,22,0.4);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .15s;
+      z-index: 100;
+    }
+    .add-btn-fab:active { transform: scale(0.92); }
+
+    /* ── BOTTOM SHEET ── */
+    .sheet-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200;
+      display: none; align-items: flex-end;
+    }
+    .sheet-overlay.open { display: flex; }
+    .sheet {
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      padding: 24px 20px 40px; width: 100%;
+      transform: translateY(100%); transition: transform .25s cubic-bezier(.32,0,.67,0);
+    }
+    .sheet-overlay.open .sheet { transform: translateY(0); }
+    .sheet h2 { font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; }
+    .sheet-form { display: flex; flex-direction: column; gap: 12px; }
+    .sheet-form input, .sheet-form select {
+      width: 100%; padding: 14px; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 0.95rem; font-family: 'DM Sans', sans-serif; outline: none;
+    }
+    .sheet-form input:focus, .sheet-form select:focus { border-color: var(--accent); }
+    .sheet-form select option { background: var(--surface2); }
+    .sheet-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .sheet-actions { display: flex; gap: 10px; margin-top: 4px; }
+    .btn-cancel { flex: 1; padding: 14px; background: transparent; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 0.95rem; cursor: pointer; }
+    .btn-add { flex: 2; padding: 14px; background: var(--accent); border: none; border-radius: 10px; color: #000; font-weight: 700; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; cursor: pointer; }
+
+    /* ── EMPTY / LOADING ── */
+    .loading { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.9rem; }
+    .toast {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 30px;
+      padding: 10px 20px; font-size: 0.85rem; color: var(--text);
+      z-index: 300; opacity: 0; pointer-events: none; transition: opacity .2s;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <h1>Uitgaves</h1>
+  <p>Inloggen om door te gaan</p>
+  <div class="auth-form">
+    <input type="email" id="auth-email" placeholder="E-mailadres" autocomplete="email" />
+    <input type="password" id="auth-password" placeholder="Wachtwoord" autocomplete="current-password" />
+    <button class="btn-primary" onclick="doLogin()">Inloggen</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="app-header">
+    <div class="header-top">
+      <h1>Uitgaves</h1>
+      <div class="header-right">
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="btn-simpel" onclick="setMode('simpel')">Simpel</button>
+          <button class="mode-btn" id="btn-uitgebreid" onclick="setMode('uitgebreid')">Uitgebreid</button>
+        </div>
+        <button class="logout-btn" onclick="doLogout()">↩</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="balance-strip">
+    <div class="balance-cell">
+      <div class="label">Loon</div>
+      <div class="amount orange" id="disp-loon">€–</div>
+    </div>
+    <div class="balance-cell">
+      <div class="label">Lasten</div>
+      <div class="amount red" id="disp-lasten">€–</div>
+    </div>
+    <div class="balance-cell">
+      <div class="label">Overschot</div>
+      <div class="amount green" id="disp-overschot">€–</div>
+    </div>
+  </div>
+
+  <div id="content">
+    <div class="loading" id="loading-msg">Laden…</div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="add-btn-fab" id="fab" onclick="openSheet()" style="display:none">+</button>
+
+<!-- ADD SHEET -->
+<div class="sheet-overlay" id="sheet">
+  <div class="sheet">
+    <h2>Uitgave toevoegen</h2>
+    <div class="sheet-form">
+      <input type="text" id="f-naam" placeholder="Naam (bijv. Spotify)" />
+      <div class="sheet-row">
+        <input type="number" id="f-bedrag" placeholder="Bedrag (€)" step="0.01" min="0" />
+        <input type="date" id="f-datum" />
+      </div>
+      <input type="text" id="f-rekening" placeholder="Rekening (optioneel)" />
+      <select id="f-type">
+        <option value="">Type betaling</option>
+        <option>Automatisch incasso</option>
+        <option>Handmatig</option>
+        <option>Creditcard</option>
+        <option>iDEAL</option>
+      </select>
+      <div class="sheet-actions">
+        <button class="btn-cancel" onclick="closeSheet()">Annuleer</button>
+        <button class="btn-add" onclick="addUitgave()">Toevoegen ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    getFirestore, collection, doc, getDoc, getDocs,
+    setDoc, updateDoc, addDoc, onSnapshot, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBlt_qTyJ9Oi4bkxhwU9qh1r8zAlHnLT74",
+    authDomain: "finance-wizard-5fe86.firebaseapp.com",
+    projectId: "finance-wizard-5fe86",
+    storageBucket: "finance-wizard-5fe86.firebasestorage.app",
+    messagingSenderId: "742159080199",
+    appId: "1:742159080199:web:bd92b80570078a1c8003a2"
+  };
+
+  const fbApp = initializeApp(firebaseConfig);
+  const auth  = getAuth(fbApp);
+  const db    = getFirestore(fbApp);
+
+  let mode = "simpel";
+  let loon = 0;
+  let uitgaves = [];
+  let potjes = [];
+  let unsubUitgaves = null;
+
+  // ── AUTH ──────────────────────────────────────────────────────────────
+  window.doLogin = async function() {
+    const email = document.getElementById("auth-email").value.trim();
+    const pass  = document.getElementById("auth-password").value;
+    document.getElementById("auth-error").textContent = "";
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch(e) {
+      document.getElementById("auth-error").textContent = "Onjuist e-mailadres of wachtwoord.";
+    }
+  };
+
+  window.doLogout = async function() {
+    if (unsubUitgaves) unsubUitgaves();
+    await signOut(auth);
+  };
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      document.getElementById("auth-screen").style.display = "none";
+      document.getElementById("app").style.display = "flex";
+      document.getElementById("fab").style.display = "flex";
+      startApp();
+    } else {
+      document.getElementById("auth-screen").style.display = "flex";
+      document.getElementById("app").style.display = "none";
+      document.getElementById("fab").style.display = "none";
+    }
+  });
+
+  // ── ENTER op wachtwoord ───────────────────────────────────────────────
+  document.getElementById("auth-password").addEventListener("keydown", e => {
+    if (e.key === "Enter") window.doLogin();
+  });
+
+  // ── APP INIT ──────────────────────────────────────────────────────────
+  async function startApp() {
+    // Laad instellingen
+    const loonDoc = await getDoc(doc(db, "instellingen", "netto_loon"));
+    loon = loonDoc.exists() ? parseFloat(loonDoc.data().waarde) : 0;
+
+    // Laad potjes
+    const potSnap = await getDocs(collection(db, "potjes"));
+    potjes = potSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Realtime uitgaves
+    if (unsubUitgaves) unsubUitgaves();
+    unsubUitgaves = onSnapshot(collection(db, "uitgaves"), snap => {
+      uitgaves = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      render();
+    });
+  }
+
+  // ── RENDER ────────────────────────────────────────────────────────────
+  function render() {
+    document.getElementById("loading-msg")?.remove();
+
+    const betaald   = uitgaves.filter(u => u.status === 1);
+    const onbetaald = uitgaves.filter(u => u.status !== 1);
+    const totaalLasten = uitgaves.reduce((s, u) => s + (parseFloat(u.bedrag) || 0), 0);
+    const overschot = loon - totaalLasten;
+
+    document.getElementById("disp-loon").textContent     = fmt(loon);
+    document.getElementById("disp-lasten").textContent   = fmt(totaalLasten);
+    document.getElementById("disp-overschot").textContent = fmt(overschot);
+    document.getElementById("disp-overschot").className  = "amount " + (overschot >= 0 ? "green" : "red");
+
+    const content = document.getElementById("content");
+    content.innerHTML = "";
+
+    // Uitgebreid: loon aanpassen
+    if (mode === "uitgebreid") {
+      content.insertAdjacentHTML("beforeend", `
+        <div class="section-header">Loon aanpassen</div>
+        <div class="loon-card">
+          <label>Netto maandloon (€)</label>
+          <div class="loon-row">
+            <input class="loon-input" type="number" id="loon-input" value="${loon}" step="50" />
+            <button class="loon-save" onclick="saveLoon()">Opslaan</button>
+          </div>
+        </div>
+      `);
+
+      // Potjes
+      if (potjes.length > 0) {
+        content.insertAdjacentHTML("beforeend", `<div class="section-header">Potjes</div>`);
+        const grid = document.createElement("div");
+        grid.className = "potjes-grid";
+        potjes.forEach(pot => {
+          const bedrag = overschot * parseFloat(pot.percentage);
+          grid.insertAdjacentHTML("beforeend", `
+            <div class="pot-card">
+              <div class="pot-name">${pot.naam}</div>
+              <div class="pot-amount">${fmt(bedrag)}</div>
+              <div class="pot-pct">${Math.round(parseFloat(pot.percentage) * 100)}% van overschot</div>
+            </div>
+          `);
+        });
+        content.appendChild(grid);
+      }
+    }
+
+    // Onbetaalde uitgaves
+    if (onbetaald.length > 0) {
+      content.insertAdjacentHTML("beforeend", `<div class="section-header">Nog te betalen (${onbetaald.length})</div>`);
+      sortUitgaves(onbetaald).forEach(u => content.appendChild(makeRow(u, false)));
+    }
+
+    // Betaalde uitgaves
+    if (betaald.length > 0) {
+      content.insertAdjacentHTML("beforeend", `<div class="section-header">Betaald (${betaald.length})</div>`);
+      if (mode === "uitgebreid") {
+        sortUitgaves(betaald).forEach(u => content.appendChild(makeRow(u, true)));
+      } else {
+        // In simpele modus: toon betaald maar grayed out, geen actieknop
+        sortUitgaves(betaald).forEach(u => content.appendChild(makeRow(u, true)));
+      }
+    }
+  }
+
+  function sortUitgaves(arr) {
+    return [...arr].sort((a, b) => {
+      const da = a.betaaldatum ? new Date(a.betaaldatum).getDate() : 0;
+      const db_ = b.betaaldatum ? new Date(b.betaaldatum).getDate() : 0;
+      const sa = da >= 25 ? da - 25 : da + 6;
+      const sb = db_ >= 25 ? db_ - 25 : db_ + 6;
+      return sa - sb;
+    });
+  }
+
+  function makeRow(u, isPaid) {
+    const div = document.createElement("div");
+    div.className = "expense-row" + (isPaid ? " paid" : "");
+    const dag = u.betaaldatum ? new Date(u.betaaldatum).getDate() : "–";
+    const rekening = u.rekening ? ` · ${u.rekening}` : "";
+    div.innerHTML = `
+      <button class="check-btn ${isPaid ? "paid" : ""}" onclick="toggleStatus('${u.id}', ${u.status})">
+        ${isPaid ? "✓" : ""}
+      </button>
+      <div class="expense-info">
+        <div class="expense-naam">${u.naam}</div>
+        <div class="expense-meta">dag ${dag}${rekening}</div>
+      </div>
+      <div class="expense-bedrag">€${parseFloat(u.bedrag).toFixed(2)}</div>
+    `;
+    return div;
+  }
+
+  // ── TOGGLE STATUS ─────────────────────────────────────────────────────
+  window.toggleStatus = async function(id, current) {
+    const nieuw = current === 1 ? 0 : 1;
+    await updateDoc(doc(db, "uitgaves", id), { status: nieuw });
+    showToast(nieuw === 1 ? "✓ Betaald!" : "↩ Teruggedraaid");
+  };
+
+  // ── LOON OPSLAAN ──────────────────────────────────────────────────────
+  window.saveLoon = async function() {
+    const val = parseFloat(document.getElementById("loon-input").value);
+    if (isNaN(val)) return;
+    loon = val;
+    await setDoc(doc(db, "instellingen", "netto_loon"), { waarde: String(val) });
+    render();
+    showToast("Loon opgeslagen");
+  };
+
+  // ── ADD UITGAVE ───────────────────────────────────────────────────────
+  window.addUitgave = async function() {
+    const naam   = document.getElementById("f-naam").value.trim();
+    const bedrag = parseFloat(document.getElementById("f-bedrag").value);
+    const datum  = document.getElementById("f-datum").value;
+    const rek    = document.getElementById("f-rekening").value.trim();
+    const type   = document.getElementById("f-type").value;
+
+    if (!naam || isNaN(bedrag)) { showToast("⚠️ Naam en bedrag verplicht"); return; }
+
+    await addDoc(collection(db, "uitgaves"), {
+      naam, bedrag, betaaldatum: datum || null,
+      rekening: rek, type_betaling: type,
+      status: 0, login_naam: "", wachtwoord_hint: "",
+      created_at: new Date().toISOString()
+    });
+
+    closeSheet();
+    showToast("✓ Uitgave toegevoegd");
+  };
+
+  // ── MODE ──────────────────────────────────────────────────────────────
+  window.setMode = function(m) {
+    mode = m;
+    document.getElementById("btn-simpel").classList.toggle("active", m === "simpel");
+    document.getElementById("btn-uitgebreid").classList.toggle("active", m === "uitgebreid");
+    render();
+  };
+
+  // ── SHEET ─────────────────────────────────────────────────────────────
+  window.openSheet = function() {
+    document.getElementById("sheet").classList.add("open");
+    // Default datum = vandaag
+    const today = new Date().toISOString().split("T")[0];
+    document.getElementById("f-datum").value = today;
+  };
+  window.closeSheet = function() {
+    document.getElementById("sheet").classList.remove("open");
+    ["f-naam","f-bedrag","f-rekening"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("f-type").value = "";
+  };
+  document.getElementById("sheet").addEventListener("click", e => {
+    if (e.target === document.getElementById("sheet")) closeSheet();
+  });
+
+  // ── TOAST ─────────────────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2000);
+  }
+
+  // ── FORMAT ────────────────────────────────────────────────────────────
+  function fmt(n) {
+    return "€" + parseFloat(n || 0).toFixed(2).replace(".", ",");
+  }
+</script>
+</body>
+</html>
